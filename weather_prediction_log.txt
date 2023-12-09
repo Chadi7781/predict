@@ -1,0 +1,90 @@
+
+                  [2023-12-09T16:09:01.678Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 285.87, 
+                      Humidity: 92], 
+                  Result Predicted Outcome: Disaster
+
+                  [2023-12-09T16:10:04.404Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 285.87, 
+                      Humidity: 92], 
+                  Result Predicted Outcome: No Disaster
+
+                    [2023-12-09T16:13:58.520Z] City: Paris, 
+                    Input: [Temperature: 20, 
+                        Humidity: 50], 
+                    Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:15:34.321Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 285.92, 
+                      Humidity: 92], 
+                  Result Predicted Outcome: Disaster
+
+                  [2023-12-09T16:16:36.197Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 285.92, 
+                      Humidity: 92], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:17:37.767Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 285.92, 
+                      Humidity: 92], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:18:36.803Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 285.92, 
+                      Humidity: 92], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:19:38.196Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 285.92, 
+                      Humidity: 92], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:20:35.825Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 285.92, 
+                      Humidity: 92], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:22:36.993Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.29, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: Disaster
+
+                  [2023-12-09T16:23:33.975Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.29, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:24:34.608Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.29, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:25:34.100Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.29, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:26:34.216Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.29, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: No Disaster
+
+                  [2023-12-09T16:27:34.176Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.29, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: Disaster
+
+                  [2023-12-09T16:28:34.038Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.32, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: Disaster
+
+                  [2023-12-09T16:29:34.097Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.32, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: Disaster
+
+                  [2023-12-09T16:30:36.600Z] Auto Prediction - City: Paris, 
+                  Input: [Temperature: 286.32, 
+                      Humidity: 89], 
+                  Result Predicted Outcome: Disaster
