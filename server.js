@@ -213,7 +213,6 @@ async function getHistoricalWeatherData(city) {
         temperature: data.temperature,
         humidity: data.humidity,
         windSpeed: data.windSpeed,
-        // Add other properties as needed
       },
       output: { category: data.weatherCategory },
     }));
