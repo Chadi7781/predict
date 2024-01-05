@@ -1,9 +1,9 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
-const fs = require("fs").promises;
 const tf = require("@tensorflow/tfjs-node");
 const app = express();
+const fs = require("fs");
 
 const port = 3001;
 app.use(bodyParser.json());
@@ -14,7 +14,158 @@ const OPENWEATHERMAP_API_ENDPOINT =
 const MODELS_DIR = "./weather_models";
 const LOG_FILE = "./weather_prediction_log.txt";
 
-async function fetchWeatherData(city) {
+const categories = [
+  "Sunny",
+  "Rainy",
+  "Cloudy",
+  "Snowy",
+  "Windy",
+  "Foggy",
+  "Unknown",
+  "Variable1",
+  "Variable2",
+  "Dangerous",
+];
+
+const numberOfCategories = categories.length;
+
+let trainedModel;
+
+async function preprocessWeatherData(weatherData) {
+  try {
+    if (
+      !weatherData ||
+      !weatherData.main ||
+      typeof weatherData.main.temp === "undefined" ||
+      !weatherData.wind ||
+      typeof weatherData.wind.speed === "undefined"
+    ) {
+      throw new Error("Invalid or incomplete weather data format");
+    }
+
+    const temperature = weatherData.main.temp;
+    const humidity = weatherData.main.humidity;
+    const windSpeed = weatherData.wind.speed;
+    const weatherCategory = "Unknown"; // Replace with actual logic to determine weather category
+
+    return { temperature, humidity, windSpeed, weatherCategory };
+  } catch (error) {
+    throw new Error(`Error preprocessing weather data: ${error.message}`);
+  }
+}
+
+async function trainModel(xs, ys, modelConfig) {
+  const model = tf.sequential();
+
+  const lstmUnits = 128;
+  model.add(
+    tf.layers.lstm({
+      units: lstmUnits,
+      inputShape: [xs.shape[1], xs.shape[2]],
+      returnSequences: false,
+    })
+  );
+
+  model.add(
+    tf.layers.dense({
+      units: numberOfCategories,
+      activation: "softmax",
+    })
+  );
+
+  model.compile({
+    optimizer: "adam",
+    loss: "categoricalCrossentropy",
+    metrics: ["accuracy"],
+  });
+
+  model.summary();
+
+  const ysOneHot = tf.oneHot(tf.argMax(ys, 1), numberOfCategories);
+
+  await model.fit(xs, ysOneHot, {
+    epochs: modelConfig.fit.epochs,
+    metrics: ["accuracy"],
+  });
+
+  await model.save(`file://${__dirname}/weather_models/${modelConfig.name}`);
+  return model;
+}
+
+app.post("/predictFuture", async (req, res) => {
+  try {
+    const city = req.body.city;
+    const futureDate = req.body.futureDate;
+
+    const trainingData = await getHistoricalWeatherData(city);
+
+    const xs = tf.tensor3d(
+      trainingData.map((data) => [
+        [data.input.temperature],
+        [data.input.humidity],
+        [data.input.windSpeed],
+      ]),
+      [trainingData.length, 3, 1]
+    );
+    const ys = tf.tensor2d(
+      trainingData.map((data) => {
+        const categoryIndex = categories.indexOf(data.output.category);
+        return Array.from({ length: categories.length }, (_, i) =>
+          i === categoryIndex ? 1 : 0
+        );
+      }),
+      [trainingData.length, numberOfCategories]
+    );
+
+    const modelConfig = {
+      name: "weather_model",
+      fit: { epochs: 100 },
+    };
+
+    const trainedModel = await trainModel(xs, ys, modelConfig);
+
+    const currentWeatherData = await getDynamicWeatherData(city);
+    const { temperature, humidity, windSpeed } = await preprocessWeatherData(
+      currentWeatherData
+    );
+
+    const inputTensor = tf.tensor3d([[[temperature], [humidity], [windSpeed]]]);
+
+    const prediction = await trainedModel.predict(inputTensor);
+
+    const result = {
+      category: categories[prediction.argMax().dataSync()[0]],
+      windSpeed: prediction.dataSync()[0], // Modify based on your actual output structure
+      additionalVariables: {}, // Modify based on your actual output structure
+    };
+
+    // Log the prediction
+    const logEntry = `${new Date().toISOString()} - City: ${city}, Future Date: ${futureDate}, Category: ${
+      result.category
+    }, Wind Speed: ${result.windSpeed}, Additional Variables: ${JSON.stringify(
+      result.additionalVariables
+    )}\n`;
+
+    fs.appendFile(LOG_FILE, logEntry, (err) => {
+      if (err) {
+        console.error("Error writing to log file:", err.message);
+      }
+    });
+
+    res.json({
+      result: `Weather prediction for ${city} on future date ${futureDate}: Category: ${
+        result.category
+      }, Wind Speed: ${
+        result.windSpeed
+      }, Additional Variables: ${JSON.stringify(result.additionalVariables)}`,
+    });
+  } catch (error) {
+    console.error("Error predicting the future:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+async function getDynamicWeatherData(city) {
   try {
     const response = await axios.get(OPENWEATHERMAP_API_ENDPOINT, {
       params: {
@@ -22,193 +173,58 @@ async function fetchWeatherData(city) {
         appid: OPENWEATHERMAP_API_KEY,
       },
     });
+
     const weatherData = response.data;
-    return weatherData;
-  } catch (error) {
-    console.error("Error fetching weather data:", error.message);
-    throw error;
-  }
-}
 
-async function preprocessWeatherData(weatherData) {
-  try {
-    const { main, weather } = weatherData;
-    const { temp, humidity } = main;
+    console.log("Full Weather Data:", weatherData); // Log the complete weather data
 
-    const disaster = weather.some(
-      (condition) => condition.main.toLowerCase() === "thunderstorm"
-    );
-
-    return {
-      temperature: temp,
-      humidity,
-      disaster,
-    };
-  } catch (error) {
-    console.error("Error preprocessing weather data:", error.message);
-    throw error;
-  }
-}
-
-async function trainModel(xs, ys, modelConfig) {
-  const model = tf.sequential();
-  model.add(tf.layers.dense(modelConfig.denseLayer));
-  model.compile(modelConfig.compile);
-
-  await model.fit(xs, ys, modelConfig.fit);
-
-  await model.save(`file://${__dirname}/weather_models/${modelConfig.name}`);
-  return model;
-}
-
-async function predictDisaster(model, inputData) {
-  const inputTensor = tf.tensor2d([inputData]);
-  const prediction = model.predict(inputTensor).dataSync()[0];
-  return prediction >= 0.5 ? "Disaster" : "No Disaster";
-}
-
-async function setupModel(city, modelConfig) {
-  try {
-    const weatherData = await fetchWeatherData(city);
-    const { temperature, humidity, disaster } = await preprocessWeatherData(
-      weatherData
-    );
-    const xs = tf.tensor2d([[temperature, humidity]]);
-    const ys = tf.tensor1d([disaster ? 1 : 0]);
-
-    const trainedModel = await trainModel(xs, ys, modelConfig);
-
-    return trainedModel;
-  } catch (error) {
-    console.error("Error setting up model:", error.message);
-    throw error;
-  }
-}
-
-(async () => {
-  try {
-    const city = "London";
-    const modelConfig = {
-      name: "disaster_model",
-      denseLayer: { units: 1, inputShape: [2], activation: "sigmoid" },
-      compile: {
-        optimizer: "sgd",
-        loss: "binaryCrossentropy",
-        metrics: ["accuracy"],
-      },
-      fit: { epochs: 100 },
-    };
-
-    const trainedModel = await setupModel(city, modelConfig);
-
-    app.post("/predict", async (req, res) => {
-      try {
-        const { city, temperature, humidity } = req.body;
-
-        if (!city || !temperature || !humidity) {
-          return res.status(400).json({
-            error:
-              "City, temperature, and humidity are required in the request body.",
-          });
-        }
-
-        const trainedModel = await setupModel(city, modelConfig);
-
-        const inputData = [temperature, humidity];
-        const predictedOutcome = await predictDisaster(trainedModel, inputData);
-        const chartData = {
-          labels: ["No Disaster", "Disaster"],
-          datasets: [
-            {
-              label: "Prediction Result",
-              data: [1 - predictedOutcome, predictedOutcome], // Assuming predictedOutcome is a probability between 0 and 1
-              backgroundColor: ["green", "red"],
-            },
-          ],
-        };
-        const logEntry = `
-                    [${new Date().toISOString()}] City: ${city}, 
-                    Input: [Temperature: ${temperature}, 
-                        Humidity: ${humidity}], 
-                    Result Predicted Outcome: ${predictedOutcome}\n`;
-        await fs.appendFile(LOG_FILE, logEntry);
-
-        res.json({
-          result: `Outcome Prediction for ${city}: ${predictedOutcome}`,
-          log: "Result logged to weather_prediction_log.txt.",
-          chartData: chartData,
-        });
-      } catch (error) {
-        console.error("Error during prediction:", error.message);
-        res.status(500).json({ error: "Internal Server Error" });
+    if (
+      !weatherData.main ||
+        !weatherData.main.temp ||
+        !weatherData.wind ||
+        !weatherData.wind.speed
+      ) {
+        console.error("Invalid or incomplete weather data format");
+        throw new Error("Invalid or incomplete weather data format");
       }
-    });
 
-    app.listen(port, () => {
-      console.log(`Server is running at http://localhost:${port}`);
-    });
+      return {
+        temperature: weatherData.main.temp,
+      humidity: weatherData.main.humidity,
+      windSpeed: weatherData.wind.speed,
+    };
   } catch (error) {
-    console.error("Error during initialization:", error.message);
+    console.error(
+      `Error fetching or processing weather data: ${error.message}`
+    );
+    throw new Error(
+      `Error fetching or processing weather data: ${error.message}`
+    );
   }
-})();
+}
+async function getHistoricalWeatherData(city) {
+  try {
+    // Fetch historical weather data from a hypothetical database
+    const historicalData = await WeatherDatabase.find({ city: city });
+    
+    // Convert historical data to the required format
+    const trainingData = historicalData.map((data) => ({
+      input: {
+        temperature: data.temperature,
+        humidity: data.humidity,
+        windSpeed: data.windSpeed,
+        // Add other properties as needed
+      },
+      output: { category: data.weatherCategory },
+    }));
 
-function runAutomaticPrediction() {
-  setInterval(async () => {
-    try {
-      // Default city for automatic prediction based on weather
-      const autoCity = "Paris";
-      const modelConfig = {
-        name: "disaster_model",
-        denseLayer: { units: 1, inputShape: [2], activation: "sigmoid" },
-        compile: {
-          optimizer: "sgd",
-          loss: "binaryCrossentropy",
-          metrics: ["accuracy"],
-        },
-        fit: { epochs: 100 },
-      };
-
-      // Set up the model for automatic prediction
-      const trainedModel = await setupModel(autoCity, modelConfig);
-
-      // Fetch current weather data for the default city
-      const weatherData = await fetchWeatherData(autoCity);
-      const { temperature, humidity, disaster } = await preprocessWeatherData(
-        weatherData
-      );
-      const autoInputData = [temperature, humidity];
-
-      // Predict the outcome automatically based on weather results
-      const autoPredictedOutcome = await predictDisaster(
-        trainedModel,
-        autoInputData
-      );
-
-      // Create a new table for automatic prediction based on weather results
-      const autoPredictionWeatherTable = {
-        city: autoCity,
-        temperature: temperature,
-        humidity: humidity,
-        weatherDisaster: disaster,
-        predictedOutcome: autoPredictedOutcome,
-      };
-
-      // Log the automatic prediction result
-      const logEntry = `
-                  [${new Date().toISOString()}] Auto Prediction - City: ${autoCity}, 
-                  Input: [Temperature: ${temperature}, 
-                      Humidity: ${humidity}], 
-                  Result Predicted Outcome: ${autoPredictedOutcome}\n`;
-      await fs.appendFile(LOG_FILE, logEntry);
-
-      console.log("Automatic prediction logged:", autoPredictionWeatherTable);
-    } catch (error) {
-      console.error(
-        "Error during automatic prediction based on weather:",
-        error.message
-      );
-    }
-  }, 60000); // Run every 1 minute (60 seconds)
+    return trainingData;
+  } catch (error)   {
+    console.error(`Error fetching historical weather data: ${error.message}`);
+    throw new Error(`Error fetching historical weather data: ${error.message}`);
+  }
 }
 
-runAutomaticPrediction();
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
+});
