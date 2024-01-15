@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+  </head>
+  <body>
+
+
+
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+<script>
+
+  // Define a simple sequential model.
+  const model = tf.sequential();
+
+  // Add a dense layer with 100 units, ReLU activation, and input shape of [10].
+  model.add(
+    tf.layers.dense({ units: 100, activation: "relu", inputShape: [10] })
+  );
+
+  // Add another dense layer with 1 unit and linear activation.
+  model.add(tf.layers.dense({ units: 1, activation: "linear" }));
+
+  // Compile the model with stochastic gradient descent optimizer and mean squared error loss.
+  model.compile({ optimizer: "sgd", loss: "meanSquaredError" });
+
+  // Generate random input data (xs) and corresponding random output data (ys).
+  const xs = tf.randomNormal([100, 10]);
+  const ys = tf.randomNormal([100, 1]);
+
+  // Train the model with the generated data.
+  model .fit(xs, ys, {
+    epochs: 100, // Number of training epochs.
+    callbacks: {
+      onEpochEnd: (epoch, log) =>
+        console.log(`Epoch ${epoch}: loss = ${log.loss}`), // Log loss after each epoch.
+    },
+  });
+
+
+
+  </script>
+
+
+
+  </body>
+</html>

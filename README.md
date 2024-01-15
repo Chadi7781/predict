@@ -1,3 +1,0 @@
-# weatherPredict
-# weatherPredict
-# predict

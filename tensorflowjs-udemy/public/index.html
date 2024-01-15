@@ -1,0 +1,78 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Visualization</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+
+      #chartContainer {
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        background-color: #f4f4f4;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div id="chartContainer">
+      <h3>House Prediction Price</h3>
+      <canvas id="scatterPlot" width="400" height="400"></canvas>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        fetch("/read-csv")
+          .then((response) => response.json())
+          .then((data) => plotScatter(data))
+          .catch((error) => console.error("Error fetching data:", error));
+      });
+
+      function plotScatter(data) {
+        const ctx = document.getElementById("scatterPlot").getContext("2d");
+
+        const scatterChart = new Chart(ctx, {
+          type: "scatter",
+          data: {
+            datasets: [
+              {
+                label: "Scatter Plot",
+                data: data,
+                backgroundColor: "rgba(75, 192, 192, 0.7)",
+              },
+            ],
+          },
+          options: {
+            scales: {
+              x: {
+                type: "linear",
+                position: "bottom",
+                title: {
+                  display: true,
+                  text: "Sqft Living",
+                },
+              },
+              y: {
+                type: "linear",
+                position: "left",
+                title: {
+                  display: true,
+                  text: "Price",
+                },
+              },
+            },
+          },
+        });
+      }
+    </script>
+  </body>
+</html>
