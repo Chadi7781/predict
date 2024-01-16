@@ -1,53 +1,71 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Data Visualization</title>
+    <title>CSV Data Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-      body {
+      .container {
         display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
-        height: 100vh;
-        margin: 0;
+        justify-content: center;
+
+        h3 {
+          color: grey;
+          font-weight: 400;
+          font-size: 3rem;
+          position: fixed;
+          top: 0;
+          padding: 16px;
+          margin: 0;
+
+          display: contents;
+        }
       }
 
-      #chartContainer {
-        padding: 20px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        background-color: #f4f4f4;
+      #chart-container {
+        width: 50%; /* Adjust the width as needed */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 70vh;
+        margin-top: 16px;
       }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
-    <div id="chartContainer">
-      <h3>House Prediction Price</h3>
-      <canvas id="scatterPlot" width="400" height="400"></canvas>
+    <div class="container">
+      <h3>House price prediction</h3>
+      <div id="chart-container">
+        <canvas id="myChart" width="400" height="400"></canvas>
+      </div>
     </div>
     <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        fetch("/read-csv")
-          .then((response) => response.json())
-          .then((data) => plotScatter(data))
-          .catch((error) => console.error("Error fetching data:", error));
-      });
+      window.onload = async function () {
+        const response = await fetch("/read-csv");
+        const data = await response.json();
 
-      function plotScatter(data) {
-        const ctx = document.getElementById("scatterPlot").getContext("2d");
+        const sqftLiving = data.map((record) => record.x);
+        const prices = data.map((record) => record.y);
 
-        const scatterChart = new Chart(ctx, {
+        const ctx = document.getElementById("myChart").getContext("2d");
+
+        const myChart = new Chart(ctx, {
           type: "scatter",
           data: {
             datasets: [
               {
-                label: "Scatter Plot",
-                data: data,
-                backgroundColor: "rgba(75, 192, 192, 0.7)",
+                label: "House Prices",
+                data: sqftLiving.map((value, index) => ({
+                  x: value,
+                  y: prices[index],
+                })),
+                backgroundColor: "rgba(75, 192, 192, 0.5)",
+                borderColor: "rgba(75, 192, 192, 1)",
+                borderWidth: 1,
               },
             ],
           },
@@ -58,7 +76,11 @@
                 position: "bottom",
                 title: {
                   display: true,
-                  text: "Sqft Living",
+                  text: "Square Feet Living",
+                },
+                scaleLabel: {
+                  display: true,
+                  labelString: "Axis Label",
                 },
               },
               y: {
@@ -68,11 +90,15 @@
                   display: true,
                   text: "Price",
                 },
+                scaleLabel: {
+                  display: true,
+                  labelString: "Axis Label",
+                },
               },
             },
           },
         });
-      }
+      };
     </script>
   </body>
 </html>
