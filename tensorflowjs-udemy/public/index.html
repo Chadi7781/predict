@@ -137,11 +137,10 @@
           showLine: true,
         });
 
-        // Add a point for the predicted price
         const sqftValueNumber = parseFloat(sqftValue);
         const pricePoint = { x: sqftValueNumber, y: predictedPrice };
 
-        chart.data.datasets.push({.
+        chart.data.datasets.push({
           label: "Predicted Price",
           data: [pricePoint],
           backgroundColor: "rgba(255, 0, 0, 1)",
