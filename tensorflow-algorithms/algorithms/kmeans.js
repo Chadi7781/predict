@@ -58,3 +58,6 @@ const kmeans = new KMeans(6, 100);
 kmeans.fit(data);
 const predictions = kmeans.predict(data);
 console.log(predictions);
+
+end
+

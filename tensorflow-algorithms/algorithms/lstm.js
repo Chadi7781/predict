@@ -1,18 +1,10 @@
-/**
- * Tensorflow.js Examples for Node.js
- * Script adatapted from
- * https://github.com/tensorflow/tfjs-examples
- * https://groups.google.com/a/tensorflow.org/forum/#!forum/tfjs
- * @author Loreto Parisi (loretoparisi@gmail.com)
- * @copyright 2018 Loreto Parisi (loretoparisi@gmail.com)
- */
+
 const tf = require("@tensorflow/tfjs-node");
 
 var fs = require("fs");
 var performance = require("perf_hooks").performance;
 
 //
-// Script adapted from: https://codepen.io/caisq/pen/vrxOvy
 //
 // TensorFlow.js example: Trains LSTM model to perform the following sequence task:
 //
