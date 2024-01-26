@@ -9,9 +9,11 @@ app.use(express.static("public")); // Serve static files from the 'public' direc
 
 app.use("/utils", express.static("utils"));
 
-const routerLinearRegression = require("./projects/linear-regression/linear-regression");
+const routerLinearRegression = require("./projects/LinearRegression/linear-regression");
+const routerLogisticRegression = require("./projects/LogisiticRegClassification/logisitic-regression");
 
 app.use("/project1", routerLinearRegression);
+app.use("/project2", routerLogisticRegression);
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);

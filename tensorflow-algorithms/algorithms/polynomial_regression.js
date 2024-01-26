@@ -1,7 +1,6 @@
-// Import TensorFlow.js with Node.js bindings
 const tf = require("@tensorflow/tfjs-node");
 
-// Generate some synthetic data for training.
+// Function to generate synthetic data for training
 const generateData = (numPoints, coeff, sigma = 0.04) => {
   return tf.tidy(() => {
     const [a, b, c, d] = [
@@ -35,47 +34,62 @@ const generateData = (numPoints, coeff, sigma = 0.04) => {
   });
 };
 
-// Training data
-const trueCoefficients = { a: -0.8, b: -0.2, c: 0.9, d: 0.5 };
-const trainingData = generateData(100, trueCoefficients);
+// Function to train the model
+async function trainModel(xs, ys) {
+  const model = tf.sequential();
+  model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
+  model.add(tf.layers.dense({ units: 4, activation: "relu" }));
+  model.add(tf.layers.dense({ units: 1, activation: "linear" }));
 
-// Define the model.
-const model = tf.sequential();
-model.add(tf.layers.dense({ units: 1, inputShape: [1] }));
-model.add(tf.layers.dense({ units: 4, activation: "relu" }));
-model.add(tf.layers.dense({ units: 1, activation: "linear" }));
+  model.compile({
+    loss: "meanSquaredError",
+    optimizer: "sgd",
+  });
 
-// Prepare the model for training: Specify the loss and the optimizer.
-model.compile({
-  loss: "meanSquaredError",
-  optimizer: "sgd",
-});
-
-// Prepare the inputs and labels for training
-const xs = trainingData.xs;
-const ys = trainingData.ys;
-
-// Train the model
-async function trainModel() {
   await model.fit(xs, ys, {
     epochs: 100,
   });
+
+  return model;
 }
 
-// Run training and prediction
-trainModel().then(() => {
+// Function to run training and prediction
+async function run() {
+  // Use static values for coefficients and number of data points
+  const staticCoefficients = {
+    a: 0.5,
+    b: -0.2,
+    c: 0.8,
+    d: 0.3,
+  };
+  const numDataPoints = 100;
+
+  // Generate training data based on static coefficients
+  const trainingData = generateData(numDataPoints, staticCoefficients);
+
+  // Prepare the inputs and labels for training
+  const xs = trainingData.xs;
+  const ys = trainingData.ys;
+
+  // Train the model
+  const trainedModel = await trainModel(xs, ys);
+
   // Predict output for a new set of data points
   const testXs = tf.linspace(-1, 1, 100);
-  const preds = model.predict(testXs.reshape([100, 1]));
+  const preds = trainedModel.predict(testXs.reshape([100, 1]));
 
   // Un-normalize the predictions
   const unNormPreds = preds.mul(ys.max().sub(ys.min())).add(ys.min());
 
   // Output the predictions
-  unNormPreds.print();
+  const predictionsArray = await unNormPreds.array();
+  console.log("Output predictions:", predictionsArray);
 
   // Cleanup memory
-  model.dispose();
+  trainedModel.dispose();
   unNormPreds.dispose();
   testXs.dispose();
-});
+}
+
+// Run the script
+run();

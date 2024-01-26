@@ -1,51 +1,72 @@
-const tf = require("@tensorflow/tfjs-node");
-const iris = require("iris-dataset");
+// Create a manual dataset
+const data = [
+  [1.0, 2.0],
+  [2.0, 3.0],
+  [3.0, 4.0],
+  [4.0, 5.0],
+  // Add more data as needed
+];
 
-// Load the iris dataset
-const { data, labels } = iris.getData();
-const features = tf.tensor2d(data);
-const labelsTensor = tf.tensor2d(labels, [labels.length, labels[0].length]); // Assuming multiple output dimensions
+const labels = [
+  [0],
+  [0],
+  [1],
+  [1],
+  // Add more labels as needed
+];
+
+// Convert the dataset to JavaScript arrays
+const features = data.map((row) => row.map((val) => val));
+const labelsArray = labels.map((row) => row[0]);
 
 // Normalize the features
-const min = features.min(0);
-const max = features.max(0);
-const normalizedFeatures = features.sub(min).div(max.sub(min));
+const min = Math.min(...features.flat());
+const max = Math.max(...features.flat());
+const normalizedFeatures = features.map((row) =>
+  row.map((val) => (val - min) / (max - min))
+);
 
 // Split the data into training and testing sets
-const [trainFeatures, testFeatures] = tf.split(normalizedFeatures, 2);
-const [trainLabels, testLabels] = tf.split(labelsTensor, 2);
+const splitIndex = Math.floor(normalizedFeatures.length / 2);
+const trainFeatures = normalizedFeatures.slice(0, splitIndex);
+const testFeatures = normalizedFeatures.slice(splitIndex);
+const trainLabels = labelsArray.slice(0, splitIndex);
+const testLabels = labelsArray.slice(splitIndex);
 
 // Implement k-Nearest Neighbors function for multiple inputs and outputs
 function knn(predictFeatures, k = 3) {
-  const { shape } = trainFeatures;
-
   // Calculate distances
-  const distances = tf
-    .sub(trainFeatures, predictFeatures)
-    .square()
-    .sum(1)
-    .sqrt();
-
-  // Get indices of k nearest neighbors
-  const topKIndices = distances.argTopK(k).dataSync();
-
-  // Get labels of the k nearest neighbors
-  const topKLabels = topKIndices.map((index) =>
-    trainLabels.dataSync().slice(index * shape[1], (index + 1) * shape[1])
+  const distances = trainFeatures.map((trainRow) =>
+    Math.sqrt(
+      trainRow.reduce((sum, val, i) => sum + (val - predictFeatures[i]) ** 2, 0)
+    )
   );
 
-  // Calculate the mode (most common label) of the k nearest neighbors for each output dimension
-  const mode = topKLabels[0].map((_, i) => {
-    const columnValues = topKLabels.map((row) => row[i]);
-    return tf.squeeze(tf.mode(columnValues).mode).arraySync()[0];
-  });
+  // Get indices of k nearest neighbors
+  const topKIndices = distances
+    .map((_, i) => i)
+    .sort((a, b) => distances[a] - distances[b])
+    .slice(0, k);
 
-  return mode;
+  // Get labels of the k nearest neighbors
+  const topKLabels = topKIndices.map((index) => trainLabels[index]);
+
+  console.log("Distances:", distances);
+  console.log("Top k Indices:", topKIndices);
+  console.log("Top k Labels:", topKLabels);
+
+  // Calculate the mode (most common label)
+  const mode = topKLabels.reduce((acc, label) => {
+    acc[label] = (acc[label] || 0) + 1;
+    return acc;
+  }, {});
+
+  console.log("Mode:", mode);
+
+  return Object.keys(mode).reduce((a, b) => (mode[a] > mode[b] ? a : b));
 }
 
 // Test the kNN function
-const testPredictions = testFeatures
-  .arraySync()
-  .map((features) => knn(tf.tensor2d([features]), 3));
+const testPredictions = testFeatures.map((features) => knn(features, 3));
 
 console.log("Test Predictions:", testPredictions);

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Iris Dataset Scatter Plot</title>
+
+    <!-- Load TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.14.1/dist/tf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+
+      header {
+        background-color: #333;
+        color: #fff;
+        padding: 10px;
+        text-align: center;
+      }
+
+      .container {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      label {
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+      }
+
+      #append,
+      #trainModel {
+        background-color: #4caf50;
+        color: #fff;
+        padding: 10px;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      #append:hover,
+      #trainModel:hover {
+        background-color: #45a049;
+      }
+
+      #myChart {
+        width: 100%;
+        max-width: 600px;
+        height: 300px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Logistic Regression</h1>
+    </header>
+
+    <div class="container">
+      <label for="swidth">Sepal Width:</label>
+      <input type="text" id="swidth" />
+
+      <label for="pwidth">Petal Width:</label>
+      <input type="text" id="pwidth" />
+
+      <p id="acc">Accuracy:</p>
+
+      <button id="append">Submit</button>
+      <button id="trainModel" onclick="train()">Train Model</button>
+    </div>
+
+    <div class="container">
+      <canvas id="myChart"></canvas>
+    </div>
+    <!DOCTYPE html>
+    <html lang="en" dir="ltr">
+      <head>
+        <meta charset="utf-8" />
+        <title>Iris Dataset Scatter Plot</title>
+
+        <!-- Load TensorFlow.js -->
+        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@0.14.1/dist/tf.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+          }
+
+          header {
+            background-color: #333;
+            color: #fff;
+            padding: 10px;
+            text-align: center;
+          }
+
+          .container {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+
+          label {
+            margin-bottom: 5px;
+            font-weight: bold;
+          }
+
+          input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+          }
+
+          #append,
+          #trainModel {
+            background-color: #4caf50;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+          }
+
+          #append:hover,
+          #trainModel:hover {
+            background-color: #45a049;
+          }
+
+          #myChart {
+            width: 100%;
+            max-width: 600px;
+            height: 300px;
+            margin-top: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <header>
+          <h1>Logistic Regression</h1>
+        </header>
+
+        <div class="container">
+          <label for="swidth">Sepal Width:</label>
+          <input type="text" id="swidth" />
+
+          <label for="pwidth">Petal Width:</label>
+          <input type="text" id="pwidth" />
+
+          <p id="acc">Accuracy:</p>
+
+          <button id="append">Submit</button>
+          <button id="trainModel">Train Model</button>
+        </div>
+
+        <div class="container">
+          <canvas id="myChart"></canvas>
+        </div>
+        <script>
+          var points = [];
+          var pred = [];
+
+          document.getElementById("append").onclick = function () {
+            var swidth = document.getElementById("swidth").value;
+            var pwidth = document.getElementById("pwidth").value;
+            var accuracyElement = document.getElementById("acc");
+
+            fetch(`/project2/predict?swidth=${swidth}&pwidth=${pwidth}`)
+              .then((response) => response.json())
+              .then((data) => {
+                pred.push(data.prediction);
+                points.push(data.point);
+                console.log(data.accuracy);
+
+                if (data.accuracy > 0.5)
+                  accuracyElement.innerHTML = `Accuracy accepted: ${data.accuracy}`;
+                else
+                  accuracyElement.innerHTML = `Accuracy ignored: ${data.accuracy}`;
+
+                updateChart();
+              })
+              .catch((error) => console.error("Error:", error));
+          };
+
+          function updateChart() {
+            var pointBackgroundColors = [];
+            var ctx = document.getElementById("myChart").getContext("2d");
+
+            var myChart = new Chart(ctx, {
+              type: "scatter",
+              data: {
+                datasets: [
+                  {
+                    label: "Iris",
+                    data: points,
+                    showLine: false,
+                    pointBackgroundColor: pointBackgroundColors,
+                  },
+                ],
+              },
+              options: {
+                scales: {
+                  yAxes: [
+                    {
+                      ticks: {
+                        max: 3,
+                        min: 0,
+                        beginAtZero: true,
+                      },
+                    },
+                  ],
+                  xAxes: [
+                    {
+                      ticks: {
+                        max: 5,
+                        min: 1.5,
+                        beginAtZero: true,
+                      },
+                    },
+                  ],
+                },
+              },
+            });
+
+            for (var i = 0; i < myChart.data.datasets[0].data.length; i++) {
+              if (pred[i] <= 0.5) {
+                pointBackgroundColors.push("#FF0000");
+              } else {
+                pointBackgroundColors.push("#00FF00");
+              }
+            }
+
+            myChart.update();
+          }
+
+          function train() {
+            fetch(`/project2/train`)
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("Model trained!", data);
+              })
+              .catch((error) => console.error("Error:", error));
+          }
+        </script>
+      </body>
+    </html>
+  </body>
+</html>

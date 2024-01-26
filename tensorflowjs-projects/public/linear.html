@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSV Data Chart</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #chart-container {
+        width: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 70vh;
+        margin-top: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h3>House price prediction</h3>
+
+      <form id="predict-form">
+        <label for="sqft">Square Feet:</label>
+        <input type="number" id="sqft" required />
+        <button type="submit">Predict Price</button>
+      </form>
+
+      <div id="chart-container">
+        <canvas id="myChart" width="400" height="400"></canvas>
+      </div>
+    </div>
+
+    <script>
+      let myChart;
+
+      window.onload = async function () {
+        const response1 = await fetch("/project1/linear-regression");
+        const data = await response1.json();
+
+        const sqftLiving = data.map((record) => record.x);
+        const prices = data.map((record) => record.y);
+
+        const ctx1 = document.getElementById("myChart").getContext("2d");
+
+        myChart = new Chart(ctx1, {
+          type: "scatter",
+          data: {
+            datasets: [
+              {
+                label: "House Prices",
+                data: sqftLiving.map((value, index) => ({
+                  x: value,
+                  y: prices[index],
+                })),
+                backgroundColor: "rgba(75, 192, 192, 0.5)",
+                borderColor: "rgba(75, 192, 192, 1)",
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              x: {
+                type: "linear",
+                position: "bottom",
+                title: {
+                  display: true,
+                  text: "Square Feet Living",
+                },
+              },
+              y: {
+                type: "linear",
+                position: "left",
+                title: {
+                  display: true,
+                  text: "Price",
+                },
+              },
+            },
+          },
+        });
+
+        document
+          .getElementById("predict-form")
+          .addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const sqftValue = document.getElementById("sqft").value;
+
+            try {
+              const response = await fetch(`/project1/predict?x=${sqftValue}`);
+              const responseData = await response.json();
+
+              const predictedPrice = responseData.prediction;
+
+              // Fetch predicted line data
+              const predictedLineResponse = await fetch(
+                "/project1/get-predicted-line"
+              );
+              const predictedLineData = await predictedLineResponse.json();
+              const { predictedLineData: clientPredictedLineData } =
+                predictedLineData;
+
+              // Plot predicted line and points
+              plotPrediction(
+                myChart,
+                clientPredictedLineData,
+                sqftValue,
+                predictedPrice
+              );
+            } catch (error) {
+              console.error("Failed to fetch the prediction:", error);
+            }
+          });
+      };
+
+      async function plotPrediction(
+        chart,
+        predictedLineData,
+        sqftValue,
+        predictedPrice
+      ) {
+        chart.data.datasets.push({
+          label: "Predicted Line",
+          data: predictedLineData,
+          borderColor: "rgba(255, 99, 132, 1)",
+          borderWidth: 2,
+          type: "line",
+          fill: false,
+          showLine: true,
+        });
+
+        const sqftValueNumber = parseFloat(sqftValue);
+        const pricePoint = { x: sqftValueNumber, y: predictedPrice };
+
+        chart.data.datasets.push({
+          label: "Predicted Price",
+          data: [pricePoint],
+          backgroundColor: "rgba(255, 0, 0, 1)",
+          borderColor: "rgba(255, 0, 0, 1)",
+          borderWidth: 2,
+          pointRadius: 8,
+          pointHoverRadius: 10,
+          type: "scatter",
+        });
+
+        chart.update();
+      }
+    </script>
+  </body>
+</html>

@@ -51,7 +51,8 @@ function createModel() {
     tf.layers.dense({
       units: 1,
       useBias: true,
-      activation: "linear",
+      activation: "sigmoid",
+
       inputDim: 1,
     })
   );
